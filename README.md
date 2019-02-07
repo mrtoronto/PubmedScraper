@@ -1,6 +1,8 @@
 # Pubmed_Scraper
 
-The main script allows you to import an ID list as a .txt file (by entering I) or to enter a query search (by entering Q).  
+The main script will scrap articles from pubmed based on parameters set in the script. 
+
+The main_CLI script runs from the terminal and allows you to import an ID list as a .txt file (by entering I) or to enter a query search (by entering Q).  
 
 - By entering I, the user is prompted for a filename. An example ID list has been provided.
 
