@@ -25,7 +25,7 @@ Allow users to scrap data from PubMed articles (or other Databases supported by 
     - Abstract
     - Pubtype
     - MeSH Keywords
-    
+
 
 ## Program Flow
 
@@ -65,12 +65,19 @@ Scripts run in the following order:
 
 - Function : get_article_ids()
     - Parameters :
-        - query - Query that'll be searched.
-        - filename - Filename of an ID list. Okay to leave blank while using a search query.
-        - retmax - Number of results to return.
-        - sort - Sort order for the results to be sorted using.
-        - have_ids - Boolean to tell script whether to use an ID list or not. Defaults to `False`
-        - api_key - API key
+        - **query**
+            - Query that'll be searched.
+        - **filename**
+            - Filename of an ID list. Okay to leave blank while using a search query.
+        - **retmax**
+            - Number of results to return.
+        - **sort**
+            - Sort order for the results to be sorted using.
+        - **have_ids**
+            - Boolean to tell script whether to use an ID list or not. Defaults to `False`
+        - **api_key**
+            - API key is not necessary to run but will help with large runs.
+            - Key increases access rate from 3 requests / second to 10 requests / second
     - Returns:
         - A list of 2 elements : [file_name_fetch, query_str]
             - **file_name_fetch**
