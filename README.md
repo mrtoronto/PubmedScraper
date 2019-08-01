@@ -16,12 +16,12 @@ The file that is output will have a filename like `{query_name}_{date}_{number_o
 The 'Master Table' will have non-flattened data. Most of the data are in lists but there is also a dictionary.
 
 After that, there are a number of flattened tables that are relevant to a specific feature. These features are:
-    - Author
-    - Keyword
-    - Article ID
-    - Abstract
-    - Pubtype
-    - MeSH Keywords
+- Author
+- Keyword
+- Article ID
+- Abstract
+- Pubtype
+- MeSH Keywords
 
 
 ## Program Flow
