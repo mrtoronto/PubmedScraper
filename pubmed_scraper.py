@@ -1,36 +1,32 @@
-# Documentation : https://dataguide.nlm.nih.gov/eutilities/utilities.html#efetch
-# Link to other dbs : https://www.ncbi.nlm.nih.gov/books/NBK25497/table/chapter2.T._entrez_unique_identifiers_ui/?report=objectonly
-# esearch query pieces
-    # datetype: pdat
-    # reldate : n
-    # mindate, maxdate : YYYY, YYYY/MM, YYYY/MM/DD
-    # sort : default = 'most+recent' ; others are 'journal' 'pub+date' 'most+recent' 'relevance' 'title' 'author'
-
-
 import pandas as pd
 import xml.etree.ElementTree as ET
 import requests
 import datetime
 
 def pubmed_xml_parse(filename):
+
     now = datetime.datetime.now()
 
-    ### Parse XML File
+    ### Parse XML File using an ElementTree
     tree_ab = ET.parse(filename)
     root_ab = tree_ab.getroot()
 
-    sql_list = []
-    df = pd.DataFrame(columns=['title', 'journal info', 'abstract info', 'mesh dict', 'keyword list', 'artID_list'])
+    ### These lists will contain lists where each list has data for 1 article
+    ### Some will be for their own sheet
+    master_df = []
     pub_type_df_list = []
-    journal_list_df = []
     abstract_df_list = []
     artID_df_list = []
     keyword_df_list = []
     author_df_list = []
     mesh_df_list = []
 
+    journal_list_df = []
+
+    ### For each article in the imported file
     for article in root_ab.findall('./PubmedArticle'):
 
+        ### These will be used to make a row in the `master_df`
         uni_mesh_dict = {}
         keyword_list = []
         artID_list = []
@@ -39,22 +35,29 @@ def pubmed_xml_parse(filename):
         pub_type_list = []
         author_list = []
 
+        ### Iterate through different parts of the articles
+        ### Publication Date
         for PubMedPubDate in article.findall('./PubmedData/History/PubMedPubDate'):
+            ### Grab data article was published on PubMed
             if PubMedPubDate.get('PubStatus') == 'pubmed':
                 year = PubMedPubDate.findall('./Year')[0].text
                 month = PubMedPubDate.findall('./Month')[0].text
         art_pubdate = month + '/' + year
 
+        ### Link and PMID
         PMID = article.find('./MedlineCitation/PMID').text
         link_str = 'https://www.ncbi.nlm.nih.gov/pubmed/' + PMID
 
+        ### Article Title
         for title in article.findall('./MedlineCitation/Article/ArticleTitle'):
-            title_text = ''.join(title.itertext())
+            title_text = ' '.join(title.itertext())
 
+        ### Publication Types
         for type in article.findall('./MedlineCitation/Article/PublicationTypeList/PublicationType'):
             pub_type_list.append(type.text)
             pub_type_df_list.append([PMID, title_text, type.text])
 
+        ### Journal Information
         for journal in article.findall('./MedlineCitation/Article/Journal'):
             try:
                 journal_title = journal.find('Title').text
@@ -63,10 +66,12 @@ def pubmed_xml_parse(filename):
                 journal_issn_type = journal.find('ISSN').get('IssnType')
                 journal_list = [journal_title, journal_issn, journal_issn_type, journal_abbr]
                 journal_list_df.append([PMID, journal_title, journal_issn, journal_issn_type, journal_abbr])
+            ### Sometimes there's no ISSN so just in case that's the case :
             except AttributeError:
                 journal_list = [journal_title, None, None, journal_abbr]
                 journal_list_df.append([PMID, journal_title, None, None, journal_abbr])
 
+        ### Abstracts
         for abstract in article.findall('./MedlineCitation/Article/Abstract/AbstractText'):
             abstract_type = abstract.get('Label')
             if abstract_type == None:
@@ -75,6 +80,7 @@ def pubmed_xml_parse(filename):
             abstract_list.append([abstract_type, abstract_text])
             abstract_df_list.append([PMID, title_text, abstract_type, abstract_text])
 
+        ### Author information
         for author in article.findall('./MedlineCitation/Article/AuthorList/Author'):
             try:
                 first_name = author.findall('./ForeName')[0].text
@@ -88,6 +94,7 @@ def pubmed_xml_parse(filename):
             author_list.append([author_text])
             author_df_list.append([PMID, title_text, author_text])
 
+        ### Article IDs and information
         for ArtID in article.findall('./PubmedData/ArticleIdList/ArticleId'):
             ArtID_text = ArtID.text
             ArtID_type = ArtID.get('IdType')
@@ -97,6 +104,7 @@ def pubmed_xml_parse(filename):
             else:
                 continue
 
+        ### MeSH Headings and Terms
         for MeshHeading in article.findall('./MedlineCitation/MeshHeadingList/MeshHeading'):
             DescName = MeshHeading.findall('./DescriptorName')[0].text
             mesh_df_list.append([PMID, title_text, '-' , DescName])
@@ -106,18 +114,20 @@ def pubmed_xml_parse(filename):
                 mesh_df_list.append([PMID, title_text, QualName.text, DescName])
             uni_mesh_dict.update({DescName:QualName_list})
 
+        ### Other keywords attached to the article
         for keyword_elem in article.findall('./MedlineCitation/KeywordList/Keyword'):
             keyword = keyword_elem.text
             keyword_signif = keyword_elem.get('MajorTopicYN')
             keyword_list.append(keyword)
             keyword_df_list.append([PMID, title_text, keyword])
 
-        ### SQL LIST
-        sql_list.append([title_text, PMID, pub_type_list, journal_list, author_list, abstract_list, keyword_list, uni_mesh_dict, art_pubdate, artID_list, link_str])
+        ### Master List
+        master_df.append([title_text, PMID, pub_type_list, journal_list, author_list, abstract_list, keyword_list, uni_mesh_dict, art_pubdate, artID_list, link_str])
 
     ### For book articles
     for book in root_ab.findall('./PubmedBookArticle'):
 
+        ### These will be used to make a row in the `master_df`
         uni_mesh_dict = {}
         keyword_list = []
         artID_list = []
@@ -172,43 +182,36 @@ def pubmed_xml_parse(filename):
             keyword_list.append(keyword)
             keyword_df_list.append([PMID, book_title, keyword])
 
-        ### SQL LIST ['title', 'pmid', 'pub_type_list', 'journal_info_list', 'author_list', 'abstract_list', 'keyword_list', 'mesh list', 'pubdate', 'artid_list', 'link']
-        sql_list.append([book_title, PMID, pub_type_list, 'Book', author_list, abstract_list, keyword_list, 'No mesh for books', art_pubdate, artID_list, link_str])
+        ### Adds row with this article's data to master_df
+        master_df.append([book_title, PMID, pub_type_list, 'Book', author_list, abstract_list, keyword_list, 'No mesh for books', art_pubdate, artID_list, link_str])
 
-    ### DF creation
+    ### Master DF creation
+    master_df = pd.DataFrame(master_df, columns=['title', 'pmid', 'pub_type_list', 'journal_info_list', 'author_list', 'abstract_list', 'keyword_list', 'mesh list', 'pubdate', 'artid_list', 'link'])
 
-    sql_df = pd.DataFrame(sql_list, columns=['title', 'pmid', 'pub_type_list', 'journal_info_list', 'author_list', 'abstract_list', 'keyword_list', 'mesh list', 'pubdate', 'artid_list', 'link'])
-
+    ### Individual sheets with data
     kw_df = pd.DataFrame(keyword_df_list, columns=['pmid', 'title', 'keyword'])
     artid_df = pd.DataFrame(artID_df_list, columns=['pmid', 'title', 'type', 'ID'])
     abs_df = pd.DataFrame(abstract_df_list, columns=['pmid', 'title', 'type', 'abstract'])
-
-    #pt_df = pd.read_csv(PubTypeDoc, names = ['Pub_type', 'clin_val', 'HEMB_signif'])
-    #pt_csv_df = pd.read_csv(PubTypeDoc, names = ['Pub_type', 'clin_val', 'HEMB_signif'])
-    #pubt_df = pd.DataFrame(pub_type_df_list, columns=['pmid', 'title', 'pub_type']).merge(pt_csv_df, left_on='pub_type', right_on='Pub_type')
-    #pubt_df['clin_val'] = pubt_df['clin_val'].astype('int')
-    #pubt_df['HEMB_signif'] = pubt_df['HEMB_signif'].astype('int')
-
-    #pt_csv_df = pd.read_csv(PubTypeDoc, names = ['Pub_type', 'clin_val', 'HEMB_signif'])
-
+    pubt_df = pd.DataFrame(pub_type_df_list, columns=['pmid', 'title', 'pub_type'])
     mesh_df = pd.DataFrame(mesh_df_list, columns=['pmid', 'title', 'qual', 'desc'])
     author_df = pd.DataFrame(author_df_list, columns=['pmid', 'title',  'author name'])
 
-    ### Create Excel document and all sheets ###
-    # names doc with query from import file, number of results and date
-    xlsx_file_name = filename[:-10] + '_' + str(len(sql_df)) + 'res' + '.xlsx'
+    ### Create Excel document and all sheets
+    xlsx_file_name = filename[:-10] + '_' + str(len(master_df)) + 'res' + '.xlsx'
     writer = pd.ExcelWriter(xlsx_file_name)
 
-    sql_df.to_excel(writer, 'SQL Sheet')
-    kw_df.to_excel(writer, 'kw Sheet')
-    artid_df.to_excel(writer, 'artID Sheet')
-    abs_df.to_excel(writer, 'abstract Sheet')
-    #pubt_df.to_excel(writer, 'pub type Sheet')
-    mesh_df.to_excel(writer, 'mesh Sheet')
+    ### Add sheets
+    master_df.to_excel(writer, 'Master Table')
+    author_df.to_excel(writer, 'Author List (Long)')
+    kw_df.to_excel(writer, 'Keyword List (Long)')
+    artid_df.to_excel(writer, 'Article ID List (Long)')
+    abs_df.to_excel(writer, 'Abstract List (Long)')
+    pubt_df.to_excel(writer, 'Pubtype List (Long)')
+    mesh_df.to_excel(writer, 'MeSH Keyword List (Long)')
 
-    #workbook = writer.book
     writer.save()
 
 
-    return_string = '   File name: ' + xlsx_file_name + '\n    Length of result: ' + str(len(sql_list))
+    return_string = '\tFile name: ' + xlsx_file_name + '\n\tLength of result: ' + str(len(master_df))
+
     return return_string
