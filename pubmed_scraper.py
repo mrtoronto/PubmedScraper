@@ -22,6 +22,9 @@ def pubmed_xml_parse(filename):
     mesh_df_list = []
 
     journal_list_df = []
+    if_cols = ['rank', 'full_journal_title', 'total_cites', 'journal_impact_factor', 'eigenfactor_score']
+    impact_factors = pd.read_csv('data/journal_impact_factors.csv', sep = ',', header=None, encoding="latin-1", names=if_cols)
+    impact_factors = impact_factors.dropna()
 
     ### For each article in the imported file
     for article in root_ab.findall('./PubmedArticle'):
@@ -64,11 +67,17 @@ def pubmed_xml_parse(filename):
                 journal_abbr = journal.find('ISOAbbreviation').text
                 journal_issn = journal.find('ISSN').text
                 journal_issn_type = journal.find('ISSN').get('IssnType')
-                journal_list = [journal_title, journal_issn, journal_issn_type, journal_abbr]
-                journal_list_df.append([PMID, journal_title, journal_issn, journal_issn_type, journal_abbr])
+                journal_impact_factor_df = impact_factors[impact_factors.full_journal_title.str.contains(f'^(?i){journal_title}$')]
+                try:
+                    journal_impact_factor = journal_impact_factor_df['journal_impact_factor'].iloc[0]
+                except:
+                    journal_impact_factor = ''
+                print(journal_impact_factor)
+                journal_list = [journal_title, journal_issn, journal_issn_type, journal_abbr, journal_impact_factor]
+                journal_list_df.append([PMID, journal_title, journal_issn, journal_issn_type, journal_abbr, journal_impact_factor])
             ### Sometimes there's no ISSN so just in case that's the case :
             except AttributeError:
-                journal_list = [journal_title, None, None, journal_abbr]
+                journal_list = [journal_title, None, None, journal_abbr, '']
                 journal_list_df.append([PMID, journal_title, None, None, journal_abbr])
 
         ### Abstracts
@@ -197,7 +206,7 @@ def pubmed_xml_parse(filename):
     author_df = pd.DataFrame(author_df_list, columns=['pmid', 'title',  'author name'])
 
     ### Create Excel document and all sheets
-    xlsx_file_name = filename[:-10] + '_' + str(len(master_df)) + 'res' + '.xlsx'
+    xlsx_file_name = filename.replace('/xml', '')[:-10] + '_' + str(len(master_df)) + 'res' + '.xlsx'
     writer = pd.ExcelWriter(xlsx_file_name)
 
     ### Add sheets
