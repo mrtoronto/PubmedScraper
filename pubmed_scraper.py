@@ -72,7 +72,6 @@ def pubmed_xml_parse(filename):
                     journal_impact_factor = journal_impact_factor_df['journal_impact_factor'].iloc[0]
                 except:
                     journal_impact_factor = ''
-                print(journal_impact_factor)
                 journal_list = [journal_title, journal_issn, journal_issn_type, journal_abbr, journal_impact_factor]
                 journal_list_df.append([PMID, journal_title, journal_issn, journal_issn_type, journal_abbr, journal_impact_factor])
             ### Sometimes there's no ISSN so just in case that's the case :
