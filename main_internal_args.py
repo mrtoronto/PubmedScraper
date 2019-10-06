@@ -9,7 +9,7 @@ api_key = ""
 
 query_term = 'translational+AND+microbiome'
 sort_order = 'relevance'
-results = 2000
+results = 20
 
 search_ids_list = get_article_ids(
                 have_ids=False,

@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import xml.etree.ElementTree as ET
 import requests
@@ -7,6 +8,11 @@ import csv
 def get_article_ids(query, filename, retmax, sort, have_ids=False, api_key=""):
 
     now = datetime.datetime.now()
+
+    if os.path.isdir("output") == False:
+        os.mkdir('output')
+    if os.path.isdir("output/xml") == False:
+        os.mkdir('output/xml')
 
     ### If `have_ids` == TRUE, user has a list of IDs saved at `filename` already
     if (have_ids == True):
@@ -29,14 +35,14 @@ def get_article_ids(query, filename, retmax, sort, have_ids=False, api_key=""):
         ret_max, query_str = '', ''
 
         ### Build filename for the _fetch .XML file
-        file_name_fetch = filename[:-4] + '_idlist_' + now.strftime("%y%m%d_%H%M") + '_fetch.xml'
+        file_name_fetch = 'output/xml/' + filename[:-4] + '_idlist_' + now.strftime("%y%m%d_%H%M") + '_fetch.xml'
 
     ### If have_ids != TRUE, then user wants to query using a search term/phrase
     else:
         query_str = query
 
         # file_name_search = query + now.strftime("%y%m%d_%H%M") + '_search.xml'
-        file_name_fetch = query + '_' + now.strftime("%y-%m-%d-%H%M") + '_fetch.xml'
+        file_name_fetch = 'output/xml/' + query + '_' + now.strftime("%y-%m-%d-%H%M") + '_fetch.xml'
         esearch_base = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi'
 
         ### More DB options here : https://www.ncbi.nlm.nih.gov/books/NBK3837/
