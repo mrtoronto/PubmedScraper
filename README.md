@@ -97,3 +97,8 @@ Scripts run in the following order:
         - **return_string**
             - A string made with the filename and number of results.
             - Will be printed in the console after a successful run.
+            
+            
+## Data 
+
+Data in `data` folder is a list of journal's impact factors and a few other stats for each journal. Data is from 2018 and downloaded from InCites Journal Citations Report. The table is not on github as it was acquired through a school proxy. The link for the data is [here](https://jcr.clarivate.com) but it is behind a paywall.
