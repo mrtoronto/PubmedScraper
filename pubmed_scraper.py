@@ -23,8 +23,11 @@ def pubmed_xml_parse(filename):
 
     journal_list_df = []
     if_cols = ['rank', 'full_journal_title', 'total_cites', 'journal_impact_factor', 'eigenfactor_score']
-    impact_factors = pd.read_csv('data/journal_impact_factors.csv', sep = ',', header=None, encoding="latin-1", names=if_cols)
-    impact_factors = impact_factors.dropna()
+    try:
+        impact_factors = pd.read_csv('data/journal_impact_factors.csv', sep = ',', header=None, encoding="latin-1", names=if_cols)
+        impact_factors = impact_factors.dropna()
+    except:
+        impact_factors = pd.DataFrame(columns=if_cols)
 
     ### For each article in the imported file
     for article in root_ab.findall('./PubmedArticle'):
