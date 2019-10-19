@@ -20,7 +20,7 @@ def pubmed_xml_parse(filename):
     keyword_df_list = []
     author_df_list = []
     mesh_df_list = []
-
+    affiliation_df_list = []
     journal_list_df = []
     if_cols = ['rank', 'full_journal_title', 'total_cites', 'journal_impact_factor', 'eigenfactor_score']
     try:
@@ -40,6 +40,7 @@ def pubmed_xml_parse(filename):
         journal_list = []
         pub_type_list = []
         author_list = []
+        affiliation_list = []
 
         ### Iterate through different parts of the articles
         ### Publication Date
@@ -94,16 +95,23 @@ def pubmed_xml_parse(filename):
         ### Author information
         for author in article.findall('./MedlineCitation/Article/AuthorList/Author'):
             try:
-                first_name = author.findall('./ForeName')[0].text
-                last_name = author.findall('./LastName')[0].text
-                author_text =  first_name + last_name
+                initials = author.findall('./Initials')[0].text
+                last_name = author.findall('LastName')[0].text
+                affiliation = author.findall('./AffiliationInfo/Affiliation')
+                aff_list = []
+                for i in affiliation:
+                    aff_list.append(i.text)
+                author_text =  initials + ", " + last_name
+                author_list.append([author_text])
             except:
                 try:
                     author_text = author.findall('./CollectiveName')[0].text
                 except:
                     author_text = 'error'
             author_list.append([author_text])
+            affiliation_list.append([author_text, aff_list])
             author_df_list.append([PMID, title_text, author_text])
+            affiliation_df_list.append([PMID, title_text, author_text, aff_list])
 
         ### Article IDs and information
         for ArtID in article.findall('./PubmedData/ArticleIdList/ArticleId'):
@@ -206,6 +214,7 @@ def pubmed_xml_parse(filename):
     pubt_df = pd.DataFrame(pub_type_df_list, columns=['pmid', 'title', 'pub_type'])
     mesh_df = pd.DataFrame(mesh_df_list, columns=['pmid', 'title', 'qual', 'desc'])
     author_df = pd.DataFrame(author_df_list, columns=['pmid', 'title',  'author name'])
+    affiliation_df = pd.DataFrame(affiliation_df_list, columns=['pmid', 'title', 'author', 'affiliation'])
 
     ### Create Excel document and all sheets
     xlsx_file_name = filename.replace('/xml', '')[:-10] + '_' + str(len(master_df)) + 'res' + '.xlsx'
@@ -219,6 +228,7 @@ def pubmed_xml_parse(filename):
     abs_df.to_excel(writer, 'Abstract List (Long)')
     pubt_df.to_excel(writer, 'Pubtype List (Long)')
     mesh_df.to_excel(writer, 'MeSH Keyword List (Long)')
+    affiliation_df.to_excel(writer, 'Affiliation List (Long)')
 
     writer.save()
 
